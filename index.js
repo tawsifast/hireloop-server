@@ -46,6 +46,13 @@ async function run() {
         const job = req.body;
         const result = await jobCollection.insertOne(job);
         res.json(result);
+    });
+
+    // company related apis 
+    app.post("/companies", async( req, res)=>{
+      const company = req.body;
+      const result = await companyCollection.insertOne(company);
+      res.json(result);
     })
 
 
