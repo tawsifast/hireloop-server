@@ -25,7 +25,8 @@ async function run() {
     
     const db = client.db("hireloop_db");
     const jobCollection = db.collection("jobs");
-    const companyCollection = db.collection("companies");
+    const companyCollection = db.collection("companies")
+    ;
 
 
     app.get("/jobs", async(req, res)=>{
