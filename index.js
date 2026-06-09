@@ -27,6 +27,9 @@ async function run() {
     const jobCollection = db.collection("jobs");
     const companyCollection = db.collection("companies");
     const userCollection = db.collection("user");
+    const applicationCollection = db.collection("applications");
+    const planCollection = db.collection("plans")
+    const subscriptionCollection = db.collection("subscriptions")
 
     app.get("/companies", async(req, res)=>{
       const cursor = companyCollection.find().skip(1);
@@ -39,6 +42,24 @@ async function run() {
       res.json(result);
     })
 
+    // subscription 
+    app.post("/subscriptions", async( req, res)=>{
+      const data = req.body;
+      const subInfo = {
+        ...data,
+        createdAt: new Date()
+      }
+      const result = await subscriptionCollection.insertOne(subInfo);
+      // update the user plan information
+      const filter = {email : data.email};
+      const updateDocument = {
+          $set : {
+            plan : data.planId
+          },
+      }
+      const updatedResult = await userCollection.updateOne(filter, updateDocument);
+      res.json(updatedResult)
+    })
 
     app.get("/jobs", async(req, res)=>{
         const query = {};
@@ -52,6 +73,40 @@ async function run() {
         const result = await cursor.toArray();
         res.json(result);
     });
+
+    app.post("/applications", async(req, res)=>{
+      const application = req.body;
+      const newApplication = {
+        ...application,
+        createdAt : new Date()
+      };
+      const result = await applicationCollection.insertOne(newApplication);
+      res.json(result);
+    });
+
+    // application related apis 
+    app.get("/applications", async(req, res)=>{
+      const query = {};
+      if(req.query.applicantId){
+        query.applicantId = req.query.applicantId
+      }
+      if(req.query.jobId){
+        query.jobId = req.query.jobId
+       }
+       const cursor = applicationCollection.find(query);
+       const result = await cursor.toArray();
+       res.json(result);
+    })
+
+    // plans 
+    app.get("/plans", async(req, res)=>{
+      const query = {};
+      if(req.query.plan_id){
+        query.id = req.query.plan_id
+      }
+      const plan = await planCollection.findOne(query);
+      res.json(plan);
+    })
 
     app.get("/jobs/:id", async(req, res)=>{
       const id = req.params.id;
