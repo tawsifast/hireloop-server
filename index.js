@@ -31,11 +31,6 @@ async function run() {
     const planCollection = db.collection("plans")
     const subscriptionCollection = db.collection("subscriptions")
 
-    app.get("/companies", async(req, res)=>{
-      const cursor = companyCollection.find().skip(1);
-      const result = await cursor.toArray();
-      res.json(result);
-    })
     app.get("/user", async(req, res)=>{
       const cursor = userCollection.find().skip(6);
       const result = await cursor.toArray();
@@ -125,6 +120,63 @@ async function run() {
         res.json(result);
     });
 
+    
+    // app.get("/companies", async(req, res)=>{
+    //   const cursor = companyCollection.find();
+    //   const result = await cursor.toArray();
+    //   res.json(result);
+    // });
+
+    // Ineffecient way og join/aggreation
+    app.get("/companies", async(req, res)=>{
+      const cursor = companyCollection.find();
+      const companies = await cursor.toArray();
+      for(const company of companies){
+        const filter = {companyId : company._id.toString()}
+        const jobCount = await jobCollection.countDocuments(filter);
+        company.jobCount = jobCount;
+      }
+      res.json(companies);
+    })
+    // effecient way og join/aggreation
+    app.get("/companies2", async(req, res)=>{
+     const pipeline = [
+            {
+              $skip: 5
+            }
+          ];
+      const cursor = companyCollection.aggregate(pipeline);
+      const result = await cursor.toArray();
+      res.json(result);
+    })
+
+    app.get("/stats", async(req, res)=>{
+      const pipeline = [
+        {
+          $group: {
+            _id : '$type',
+            count : {
+              $sum : 1
+            }
+          }
+        },
+        {
+          $project : {
+            jobType : "$_id",
+            _id : 0,
+            count : 1,
+          }
+        },
+        { 
+          $sort : {
+              count : -1
+          }
+        }
+      ]
+      const cursor = jobCollection.aggregate(pipeline);
+      const result = await cursor.toArray();
+      res.json(result);
+    })
     // company related apis 
     app.post("/companies", async( req, res)=>{
       const company = req.body;
@@ -144,6 +196,20 @@ async function run() {
       const result = await companyCollection.findOne(query);
       console.log(result,"rsl");
       res.json(result || {});
+    });
+
+    app.patch("/companies/:id", async(req, res)=>{
+      const {id} = req.params;
+      const updatedCompany = req.body;
+      const filter = {_id: new ObjectId(id)};
+      const updatedDoc = {
+        // $set: updatedCompany sob change korar khetre
+        $set: {
+          status: updatedCompany.status
+        }
+      };
+      const result = await companyCollection.updateOne(filter, updatedDoc);
+      res.json(result);
     })
 
 
